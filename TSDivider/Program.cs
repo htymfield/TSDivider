@@ -87,11 +87,12 @@ class Solver(DirectoryInfo targetDir) {
                     if (groupDict.ContainsKey(tempGroupName)) { continue; }
 
                     var groupChildren = titleList
-                        .Where(t => t.Contains(tempGroupName));
+                        .Where(t => t.Contains(tempGroupName))
+                        .ToList();
 
                     //1番組のみのフォルダができるのを防ぐための特殊処理
-                    var eachScore = groupChildren.Count() == 1 ? tempGroupName.Length / 2 : tempGroupName.Length;
-                    var newChildrenScore = groupChildren.Count() * eachScore;
+                    var eachScore = groupChildren.Count == 1 ? tempGroupName.Length / 2 : tempGroupName.Length;
+                    var newChildrenScore = groupChildren.Count * eachScore;
 
 
                     if (newChildrenScore >= maxScore) {
