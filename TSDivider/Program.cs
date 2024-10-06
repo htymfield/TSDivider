@@ -51,10 +51,18 @@ class Solver(DirectoryInfo targetDir) {
     //public List<string> ExtList { get; init; } = [".mp4", ".ts"];
     public int MinimumNameLength { get; init; } = 3;
 
+    /// <summary>
+    /// フォルダ内のファイル一覧を取得する。
+    /// </summary>
+    /// <returns></returns>
     IEnumerable<FileInfo> GetFileList() => targetDir
         .EnumerateFiles("*.*");
         //.Where(f => ExtList.Any(e => f.FullName.Contains(e)));
 
+    //そのうち外部ファイルに出した方が便利かも
+    /// <summary>
+    /// これらの文字列より後ろはトリミングし、番組名として扱わない
+    /// </summary>
     string[] TrimEndList { get; init; } = [
         "第",
         "#",
@@ -63,6 +71,11 @@ class Solver(DirectoryInfo targetDir) {
         "　★",
         ];
 
+    /// <summary>
+    /// FileInfoから（解析上の）番組名を取得する。
+    /// </summary>
+    /// <param name="fileinfo"></param>
+    /// <returns></returns>
     string GetTitle(FileInfo fileinfo) {
         var sp = fileinfo.Name.Split("_")[1]; // _で囲まれた番組名の部分のみ取得
         foreach (var key in TrimEndList) {
