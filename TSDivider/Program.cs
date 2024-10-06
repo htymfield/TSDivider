@@ -22,11 +22,9 @@ class Program {
             Console.WriteLine($"  Target directory: {dirArgValue}");
             if (dryRunArgValue) { Console.WriteLine("  Dry run: True"); }
 
-            var solver = new Solver(
-                dirArgValue,
-                dryRunArgValue,
-                [".mp4", ".ts"]
-                );
+            var solver = new Solver(dirArgValue) {
+                IsDryRun = dryRunArgValue,
+            };
             solver.Invoke();
 
         }, dirArgument, dryRunOption);
@@ -36,14 +34,16 @@ class Program {
 }
 
 
-class Solver(
-    DirectoryInfo targetDir,
-    bool isDryRun,
-    List<string> extList) {
+class Solver(DirectoryInfo targetDir) {
+
+    public bool IsDryRun { get; init; } = true;
+    public List<string> ExtList { get; init; } = [".mp4", ".ts"];
+
 
     public void Invoke() {
-        var fileList = targetDir.EnumerateFiles("*.*")
-            .Where(f => extList.Any(e => f.FullName.Contains(e)));
+        var fileNameList = targetDir.EnumerateFiles("*.*")
+            .Where(f => ExtList.Any(e => f.FullName.Contains(e)))
+            .Select(f => f.Name);
 
     }
 }
