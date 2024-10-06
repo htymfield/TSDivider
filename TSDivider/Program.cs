@@ -45,8 +45,22 @@ class Solver(DirectoryInfo targetDir) {
         .EnumerateFiles("*.*")
         .Where(f => ExtList.Any(e => f.FullName.Contains(e)));
 
-    static string GetTitle(FileInfo fileinfo) {
-        return fileinfo.Name.Split("_")[1]; // _で囲まれた番組名の部分のみ取得
+    string[] TrimEndList { get; init; } = [
+        "第",
+        "#",
+        "＃",
+        " ★",
+        "　★",
+        ];
+
+    string GetTitle(FileInfo fileinfo) {
+        var sp = fileinfo.Name.Split("_")[1]; // _で囲まれた番組名の部分のみ取得
+        foreach (var key in TrimEndList) {
+            if (!sp.Contains(key)) { continue; }
+            var i = sp.IndexOf(key);
+            sp = sp[0..i];
+        }
+        return sp;
     }
 
 
