@@ -120,7 +120,7 @@ class Solver(DirectoryInfo targetDir) {
 
 
         groupDict = groupDict
-            .Where(kv => kv.Value.Count <= 0)
+            .Where(kv => kv.Value.Count > 0)
             .ToDictionary();
 
 
