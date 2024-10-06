@@ -40,43 +40,71 @@ class Solver(DirectoryInfo targetDir) {
     public List<string> ExtList { get; init; } = [".mp4", ".ts"];
     public int MinimumNameLength { get; init; } = 3;
 
+    IEnumerable<FileInfo> GetFileList() => targetDir
+        .EnumerateFiles("*.*")
+        .Where(f => ExtList.Any(e => f.FullName.Contains(e)));
+
+    static string GetTitle(FileInfo fileinfo) {
+        return fileinfo.Name.Split("_")[1]; // _で囲まれた番組名の部分のみ取得
+    }
+
 
     public void Invoke() {
-        var fileNameList = targetDir.EnumerateFiles("*.*")
-            .Where(f => ExtList.Any(e => f.FullName.Contains(e)))
-            .Select(f => f.Name.Split("_")[1]) // _で囲まれた番組名の部分のみ取得
-            .ToList();
 
+        var titleList = GetFileList().Select(GetTitle).ToList();
         var groupList = new List<string>();
-        for (int i = 0; i < fileNameList.Count; i++) {
-            var filename = fileNameList[i];
+        for (int i = 0; i < titleList.Count; i++) {
+            var title = titleList[i];
             var scoreMax = 0;
             var groupName = "";
 
-            for (int b = 0; b < filename.Length; b++) {
-                for (int e = b + MinimumNameLength; e < filename.Length; e++) {
+            for (int b = 0; b < title.Length; b++) {
+                for (int e = b + MinimumNameLength; e < title.Length; e++) {
 
-                    var tempGroupName = filename[b..e];
+                    var tempGroupName = title[b..e];
 
-                    var tempScore = fileNameList
+                    var cnt = titleList
                         .Where(f => f.Contains(tempGroupName))
-                        .Count() * tempGroupName.Length;
+                        .Count();
+                    //1番組のみのフォルダができるのを防ぐために0始まりにしている。
+                    var tempScore = Math.Max(0, (cnt-1))
+                        * (int)Math.Pow(2, tempGroupName.Length);
 
-                    if (tempScore > scoreMax) {
+                    //1番組のみのグループ名でも更新されるように必ず＝をつけないといけない。
+                    if (tempScore >= scoreMax) {
                         scoreMax = tempScore;
                         groupName = tempGroupName;
                     }
                 }
             }
             groupList.Add(groupName);
-            fileNameList = fileNameList.Where(f=>!f.Contains(groupName)).ToList();
+            titleList = titleList.Where(f => !f.Contains(groupName)).ToList();
+        }
+        groupList.Sort();
+
+
+        var fileList = GetFileList().ToList();
+        var groupChildrenList = new List<List<FileInfo>>();
+        for (int i = 0; i < groupList.Count; i++) {
+            var groupChildren = new List<FileInfo>();
+            groupChildrenList.Add(groupChildren);
+            var group = groupList[i];
+
+            for (int j = fileList.Count - 1; j >= 0; j--) {
+                var file = fileList[j];
+                var title = GetTitle(file);
+                if (!title.Contains(group)) { continue; }
+
+                groupChildren.Add(file);
+                fileList.RemoveAt(j);
+            }
         }
 
-
-        groupList.Sort();
-        foreach (var item in groupList)
-        {
-            Console.WriteLine(item);
+        for (int i = 0; i < groupList.Count; i++) {
+            Console.WriteLine($"group: {groupList[i]}");
+            for (int j = 0; j < groupChildrenList[i].Count; j++) {
+                Console.WriteLine("  " + groupChildrenList[i][j].Name);
+            }
         }
 
     }
