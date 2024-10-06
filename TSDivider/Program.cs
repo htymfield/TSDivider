@@ -38,12 +38,46 @@ class Solver(DirectoryInfo targetDir) {
 
     public bool IsDryRun { get; init; } = true;
     public List<string> ExtList { get; init; } = [".mp4", ".ts"];
+    public int MinimumNameLength { get; init; } = 3;
 
 
     public void Invoke() {
         var fileNameList = targetDir.EnumerateFiles("*.*")
             .Where(f => ExtList.Any(e => f.FullName.Contains(e)))
-            .Select(f => f.Name);
+            .Select(f => f.Name.Split("_")[1]) // _で囲まれた番組名の部分のみ取得
+            .ToList();
+
+        var groupList = new List<string>();
+        for (int i = 0; i < fileNameList.Count; i++) {
+            var filename = fileNameList[i];
+            var scoreMax = 0;
+            var groupName = "";
+
+            for (int b = 0; b < filename.Length; b++) {
+                for (int e = b + MinimumNameLength; e < filename.Length; e++) {
+
+                    var tempGroupName = filename[b..e];
+
+                    var tempScore = fileNameList
+                        .Where(f => f.Contains(tempGroupName))
+                        .Count() * tempGroupName.Length;
+
+                    if (tempScore > scoreMax) {
+                        scoreMax = tempScore;
+                        groupName = tempGroupName;
+                    }
+                }
+            }
+            groupList.Add(groupName);
+            fileNameList = fileNameList.Where(f=>!f.Contains(groupName)).ToList();
+        }
+
+
+        groupList.Sort();
+        foreach (var item in groupList)
+        {
+            Console.WriteLine(item);
+        }
 
     }
 }
