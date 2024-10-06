@@ -67,7 +67,7 @@ class Solver(DirectoryInfo targetDir) {
     public void Invoke() {
 
         var titleList = GetFileList().Select(GetTitle).ToList();
-        var groupSet = new HashSet<string>();
+        var groupDict = new Dictionary<string, List<FileInfo>>();
         for (int i = 0; i < titleList.Count; i++) {
             var title = titleList[i];
             var groupName = "";
@@ -77,7 +77,7 @@ class Solver(DirectoryInfo targetDir) {
                 for (int e = b + MinimumNameLength; e <= title.Length; e++) { //title[b..e]なのでeはLengthと等しいところまで上がる。
 
                     var tempGroupName = title[b..e].TrimEnd();
-                    if (groupSet.Contains(tempGroupName)) { continue; }
+                    if (groupDict.ContainsKey(tempGroupName)) { continue; }
 
                     var groupChildren = titleList
                         .Where(t => t.Contains(tempGroupName));
@@ -94,37 +94,36 @@ class Solver(DirectoryInfo targetDir) {
                 }
             }
             if (groupName != "") {
-                groupSet.Add(groupName);
+                groupDict.Add(groupName, []);
             }
         }
 
-        var groupList = groupSet.ToList();
-        groupList.Sort();
         var fileList = GetFileList().ToList();
-        var groupChildrenList = groupList.Select(g => new List<FileInfo>()).ToList();
         for (int i = 0; i < titleList.Count; i++) {
             var title = titleList[i];
 
-            var maxScore = 0;
-            var maxIndex = 0;
-            for (int g = 0; g < groupList.Count; g++) {
-                var group = groupList[g];
-                if (!title.Contains(group)) { continue; }
-                if (group.Length < maxScore) { continue; }
-                maxScore = group.Length;
-                maxIndex = g;
-            }
-            groupChildrenList[maxIndex].Add(fileList[i]);
+            var maxGroup = groupDict.Keys
+                .Where(title.Contains)
+                .OrderByDescending(g => g.Length)
+                .First();
+
+            groupDict[maxGroup].Add(fileList[i]);
         }
 
 
-        for (int i = 0; i < groupList.Count; i++) {
-            if (groupChildrenList[i].Count <= 0) { continue; }
-            Console.WriteLine($"group: {groupList[i]}");
-            for (int j = 0; j < groupChildrenList[i].Count; j++) {
-                Console.WriteLine("  " + groupChildrenList[i][j].Name);
+        groupDict.Keys.ToList().ForEach(g => {
+            if (groupDict[g].Count <= 0) {
+                groupDict.Remove(g);
             }
-        }
+        });
 
+
+        groupDict.Keys.Order().ToList().ForEach(g => {
+            Console.WriteLine($"group: {g}");
+            var filelist = groupDict[g];
+            filelist.OrderBy(f=>f.Name).ToList().ForEach(f => {
+                Console.WriteLine("  " + f.Name);
+            });
+        });
     }
 }
