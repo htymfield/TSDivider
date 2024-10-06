@@ -2,6 +2,7 @@
 
 using System.CommandLine;
 using System.Globalization;
+using System.Runtime.InteropServices;
 
 class Program {
     static async Task Main(string[] args) {
@@ -51,54 +52,56 @@ class Solver(DirectoryInfo targetDir) {
 
     public void Invoke() {
 
-        var titleList = GetFileList().Select(GetTitle).ToList();
-        var groupList = new List<string>();
+        var titleList = GetFileList().Select(f => (Title: GetTitle(f), Score: 0)).ToList();
+        var groupSet = new HashSet<string>();
         for (int i = 0; i < titleList.Count; i++) {
-            var title = titleList[i];
-            var scoreMax = 0;
+            var title = titleList[i].Title;
             var groupName = "";
 
             for (int b = 0; b < title.Length; b++) {
                 for (int e = b + MinimumNameLength; e < title.Length; e++) {
 
                     var tempGroupName = title[b..e];
+                    if (groupSet.Contains(tempGroupName)) { continue; }
 
-                    var cnt = titleList
-                        .Where(f => f.Contains(tempGroupName))
-                        .Count();
-                    //1番組のみのフォルダができるのを防ぐために0始まりにしている。
-                    var tempScore = Math.Max(0, (cnt-1))
-                        * (int)Math.Pow(2, tempGroupName.Length);
+                    var groupChildren = titleList
+                        .Where(t => t.Title.Contains(tempGroupName));
+                    var currentChidrenScore = groupChildren.Sum(t => t.Score);
 
-                    //1番組のみのグループ名でも更新されるように必ず＝をつけないといけない。
-                    if (tempScore >= scoreMax) {
-                        scoreMax = tempScore;
+                    //1番組のみのフォルダができるのを防ぐための特殊処理
+                    var eachScore = groupChildren.Count() == 1 ? 0 : tempGroupName.Length;
+                    var newChildrenScore = groupChildren.Count() * eachScore;
+
+                    if (newChildrenScore >= currentChidrenScore) {
                         groupName = tempGroupName;
+                        for (int j = 0; j < titleList.Count; j++) {
+                            if (titleList[j].Title.Contains(groupName)) {
+                                titleList[j] =
+                                    (titleList[j].Title, eachScore);
+                            }
+                        }
                     }
                 }
             }
-            groupList.Add(groupName);
-            titleList = titleList.Where(f => !f.Contains(groupName)).ToList();
+            groupSet.Add(groupName);
         }
+
+        var groupList = groupSet.ToList();
         groupList.Sort();
-
-
         var fileList = GetFileList().ToList();
-        var groupChildrenList = new List<List<FileInfo>>();
-        for (int i = 0; i < groupList.Count; i++) {
-            var groupChildren = new List<FileInfo>();
-            groupChildrenList.Add(groupChildren);
-            var group = groupList[i];
+        var groupChildrenList = groupList.Select(g => new List<FileInfo>()).ToList();
+        for (int i = 0; i < titleList.Count; i++) {
+            var title = titleList[i].Title;
+            var score = titleList[i].Score;
 
-            for (int j = fileList.Count - 1; j >= 0; j--) {
-                var file = fileList[j];
-                var title = GetTitle(file);
+            for (int g = 0; g < groupList.Count; g++) {
+                var group = groupList[g];
                 if (!title.Contains(group)) { continue; }
-
-                groupChildren.Add(file);
-                fileList.RemoveAt(j);
+                if (group.Length != score) { continue; }
+                groupChildrenList[g].Add(fileList[i]);
             }
         }
+
 
         for (int i = 0; i < groupList.Count; i++) {
             Console.WriteLine($"group: {groupList[i]}");
