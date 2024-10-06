@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TSDivider": {
+      "commandName": "Project",
+      "commandLineArgs": "K:\\TVRecord\\encoded --dry-run"
+    }
+  }
+}
