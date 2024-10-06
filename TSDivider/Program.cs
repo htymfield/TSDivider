@@ -119,11 +119,9 @@ class Solver(DirectoryInfo targetDir) {
         }
 
 
-        groupDict.Keys.ToList().ForEach(g => {
-            if (groupDict[g].Count <= 0) {
-                groupDict.Remove(g);
-            }
-        });
+        groupDict = groupDict
+            .Where(kv => kv.Value.Count <= 0)
+            .ToDictionary();
 
 
         //結果表示
