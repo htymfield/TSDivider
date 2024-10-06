@@ -76,8 +76,7 @@ class Solver(DirectoryInfo targetDir) {
 
         var titleList = GetFileList().Select(GetTitle).ToList();
         var groupDict = new Dictionary<string, List<FileInfo>>();
-        for (int i = 0; i < titleList.Count; i++) {
-            var title = titleList[i];
+        foreach (var title in titleList.Distinct()) {
             var groupName = "";
             var maxScore = -0.5;
 
