@@ -1,8 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-using System.CommandLine;
-using System.Globalization;
-using System.Runtime.InteropServices;
+﻿using System.CommandLine;
 
 class Program {
     static async Task Main(string[] args) {
@@ -18,17 +14,28 @@ class Program {
             description: "An option for dry run.");
         rootCommand.Add(dryRunOption);
 
-        rootCommand.SetHandler((dirArgValue, dryRunArgValue) => {
-            Console.WriteLine("Arguments: ");
-            Console.WriteLine($"  Target directory: {dirArgValue}");
-            if (dryRunArgValue) { Console.WriteLine("  Dry run: True"); }
+        var copyOption = new Option<bool>(
+            name: "--copy",
+            description: "An option for copy file insted of move file.");
+        rootCommand.Add(copyOption);
 
-            var solver = new Solver(dirArgValue) {
-                IsDryRun = dryRunArgValue,
-            };
-            solver.Invoke();
+        rootCommand.SetHandler((
+            dirArgValue,
+            dryRunArgValue,
+            copyArgValue) => {
+                Console.WriteLine("Arguments: ");
+                Console.WriteLine($"  Target directory: {dirArgValue}");
+                if (dryRunArgValue) { Console.WriteLine("  Dry run: True"); }
+                if (copyArgValue) { Console.WriteLine("  Copy: True"); }
+                Console.WriteLine();
 
-        }, dirArgument, dryRunOption);
+                var solver = new Solver(dirArgValue) {
+                    IsDryRun = dryRunArgValue,
+                    IsCopy = copyArgValue,
+                };
+                solver.Invoke();
+
+            }, dirArgument, dryRunOption, copyOption);
 
         await rootCommand.InvokeAsync(args);
     }
@@ -37,7 +44,8 @@ class Program {
 
 class Solver(DirectoryInfo targetDir) {
 
-    public bool IsDryRun { get; init; } = true;
+    public bool IsDryRun { get; init; }
+    public bool IsCopy { get; init; }
     public List<string> ExtList { get; init; } = [".mp4", ".ts"];
     public int MinimumNameLength { get; init; } = 3;
 
@@ -118,12 +126,39 @@ class Solver(DirectoryInfo targetDir) {
         });
 
 
+        //結果表示
         groupDict.Keys.Order().ToList().ForEach(g => {
             Console.WriteLine($"group: {g}");
+
             var filelist = groupDict[g];
-            filelist.OrderBy(f=>f.Name).ToList().ForEach(f => {
+            filelist.OrderBy(f => f.Name).ToList().ForEach(f => {
                 Console.WriteLine("  " + f.Name);
             });
         });
+        Console.WriteLine();
+
+
+        if (IsDryRun) { return; }
+        //ファイル移動実行
+        Console.WriteLine(IsCopy ? "Copying files .." : "Moving files ..");
+        var cnt = 0;
+        var fileCnt = groupDict.Values.Sum(fList => fList.Count);
+        groupDict.Keys.Order().ToList().ForEach(g => {
+            var groupDir = Path.Combine(targetDir.FullName, g);
+            Directory.CreateDirectory(groupDir);
+
+            var filelist = groupDict[g];
+            filelist.OrderBy(f => f.Name).ToList().ForEach(f => {
+                if (IsCopy) {
+                    File.Copy(f.FullName, Path.Combine(groupDir, f.Name), true);
+                } else {
+                    File.Move(f.FullName, Path.Combine(groupDir, f.Name), true);
+                }
+                cnt++;
+                Console.Write($"{100 * cnt / fileCnt}%");
+                Console.SetCursorPosition(0, Console.CursorTop);
+            });
+        });
+        Console.WriteLine("Completed!");
     }
 }
