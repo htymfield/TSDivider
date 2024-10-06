@@ -66,38 +66,36 @@ class Solver(DirectoryInfo targetDir) {
 
     public void Invoke() {
 
-        var titleList = GetFileList().Select(f => (Title: GetTitle(f), Score: 0)).ToList();
+        var titleList = GetFileList().Select(GetTitle).ToList();
         var groupSet = new HashSet<string>();
         for (int i = 0; i < titleList.Count; i++) {
-            var title = titleList[i].Title;
+            var title = titleList[i];
             var groupName = "";
+            var maxScore = -0.5;
 
             for (int b = 0; b < title.Length; b++) {
-                for (int e = b + MinimumNameLength; e < title.Length; e++) {
+                for (int e = b + MinimumNameLength; e <= title.Length; e++) { //title[b..e]なのでeはLengthと等しいところまで上がる。
 
-                    var tempGroupName = title[b..e];
+                    var tempGroupName = title[b..e].TrimEnd();
                     if (groupSet.Contains(tempGroupName)) { continue; }
 
                     var groupChildren = titleList
-                        .Where(t => t.Title.Contains(tempGroupName));
-                    var currentChidrenScore = groupChildren.Sum(t => t.Score);
+                        .Where(t => t.Contains(tempGroupName));
 
                     //1番組のみのフォルダができるのを防ぐための特殊処理
-                    var eachScore = groupChildren.Count() == 1 ? 0 : tempGroupName.Length;
+                    var eachScore = groupChildren.Count() == 1 ? tempGroupName.Length / 2 : tempGroupName.Length;
                     var newChildrenScore = groupChildren.Count() * eachScore;
 
-                    if (newChildrenScore >= currentChidrenScore) {
+
+                    if (newChildrenScore >= maxScore) {
                         groupName = tempGroupName;
-                        for (int j = 0; j < titleList.Count; j++) {
-                            if (titleList[j].Title.Contains(groupName)) {
-                                titleList[j] =
-                                    (titleList[j].Title, eachScore);
-                            }
-                        }
+                        maxScore = newChildrenScore;
                     }
                 }
             }
-            groupSet.Add(groupName);
+            if (groupName != "") {
+                groupSet.Add(groupName);
+            }
         }
 
         var groupList = groupSet.ToList();
@@ -105,19 +103,23 @@ class Solver(DirectoryInfo targetDir) {
         var fileList = GetFileList().ToList();
         var groupChildrenList = groupList.Select(g => new List<FileInfo>()).ToList();
         for (int i = 0; i < titleList.Count; i++) {
-            var title = titleList[i].Title;
-            var score = titleList[i].Score;
+            var title = titleList[i];
 
+            var maxScore = 0;
+            var maxIndex = 0;
             for (int g = 0; g < groupList.Count; g++) {
                 var group = groupList[g];
                 if (!title.Contains(group)) { continue; }
-                if (group.Length != score) { continue; }
-                groupChildrenList[g].Add(fileList[i]);
+                if (group.Length < maxScore) { continue; }
+                maxScore = group.Length;
+                maxIndex = g;
             }
+            groupChildrenList[maxIndex].Add(fileList[i]);
         }
 
 
         for (int i = 0; i < groupList.Count; i++) {
+            if (groupChildrenList[i].Count <= 0) { continue; }
             Console.WriteLine($"group: {groupList[i]}");
             for (int j = 0; j < groupChildrenList[i].Count; j++) {
                 Console.WriteLine("  " + groupChildrenList[i][j].Name);
