@@ -46,12 +46,14 @@ class Solver(DirectoryInfo targetDir) {
 
     public bool IsDryRun { get; init; }
     public bool IsCopy { get; init; }
-    public List<string> ExtList { get; init; } = [".mp4", ".ts"];
+    
+    //ファイル名しか見ないので.logでもなんでもいける。
+    //public List<string> ExtList { get; init; } = [".mp4", ".ts"];
     public int MinimumNameLength { get; init; } = 3;
 
     IEnumerable<FileInfo> GetFileList() => targetDir
-        .EnumerateFiles("*.*")
-        .Where(f => ExtList.Any(e => f.FullName.Contains(e)));
+        .EnumerateFiles("*.*");
+        //.Where(f => ExtList.Any(e => f.FullName.Contains(e)));
 
     string[] TrimEndList { get; init; } = [
         "第",
